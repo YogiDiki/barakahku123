@@ -28,6 +28,17 @@ const app = {
     this.loadChecklist();
     await this.loadMurotalList();
     this.registerServiceWorker();
+
+    // 🎧 Tambahan fitur: auto-stop murottal
+    document.addEventListener('play', function (e) {
+      const audios = document.getElementsByTagName('audio');
+      for (let i = 0; i < audios.length; i++) {
+        if (audios[i] !== e.target) {
+          audios[i].pause();
+        }
+      }
+    }, true);
+
     console.log('✅ Aplikasi siap digunakan');
   },
 
@@ -49,7 +60,7 @@ const app = {
     }
   },
 
-  // Load detail surah dengan semua ayat
+  // Load detail surah
   async loadSurah(nomor) {
     try {
       console.log(`📖 Membuka surah nomor ${nomor}...`);
@@ -66,11 +77,7 @@ const app = {
       };
       localStorage.setItem('lastRead', nomor);
       console.log(`✅ Surah ${data.data.namaLatin} berhasil dimuat`);
-      
-      // Scroll to top
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 100);
+      setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
     } catch (err) {
       console.error('❌ Gagal memuat surah:', err);
     }
@@ -139,7 +146,7 @@ const app = {
       {
         id: 9,
         judul: 'Doa Memakai Pakaian',
-        arab: 'اَلْحَمْدُ لِلَّهِ الَّذِيْ كَسَانِيْ هَذَا وَرَزَقَنِيْهِ مِنْ غَيْرِ حَوْلٍ مِنِّيْ وَلاَ قُوَّةٍ',
+        arab: 'اَلْحَمْدُ لِلَّهِ الَّذِيْ كَسَانِيْ هَذَا وَرَزَقَنِيْهِ...',
         latin: 'Alhamdu lillahil ladzi kasani hadza wa razaqanihi min ghairi haulin minni wa laa quwwata',
         terjemah: 'Segala puji bagi Allah yang memberi aku pakaian ini dan memberi rizki kepadaku tanpa daya dan kekuatan dariku'
       },
@@ -154,183 +161,211 @@ const app = {
     console.log(`✅ ${this.doaList.length} doa berhasil dimuat`);
   },
 
-  // Load daftar murottal dari API - 114 Surah Lengkap
-  async loadMurotalList() {
-    try {
-      console.log('🎵 Memuat daftar murottal...');
-      const res = await fetch('https://equran.id/api/v2/surat');
-      const data = await res.json();
-      
-      // Ambil SEMUA 114 surah dengan audio lengkap
-      this.murotalList = data.data.map(s => {
-        // Pastikan audio URL valid
-        let audioUrl = '';
-        if (s.audioFull && s.audioFull['05']) {
-          audioUrl = s.audioFull['05'];
-        } else if (s.audioFull && s.audioFull['01']) {
-          audioUrl = s.audioFull['01'];
-        }
-        
-        return {
-          id: s.nomor,
-          nomor: s.nomor,
-          judul: s.namaLatin + ' - ' + s.nama,
-          qari: 'Mishari Rashid Al-Afasy',
-          audio: audioUrl
-        };
-      });
-      
-      console.log(`✅ ${this.murotalList.length} murottal berhasil dimuat`);
-    } catch (err) {
-      console.error('❌ Gagal memuat murottal:', err);
-      this.murotalList = [];
-    }
-  },
-
-  // Load jadwal sholat berdasarkan kota dari GPS
-  async loadJadwal() {
-    if (!navigator.geolocation) {
-      this.cityName = 'Lokasi tidak tersedia';
-      console.warn('⚠️ Geolocation tidak didukung browser');
-      return;
-    }
-    
-    console.log('📍 Mendapatkan lokasi...');
-    this.cityName = 'Mendapatkan lokasi...';
-    
-    navigator.geolocation.getCurrentPosition(async pos => {
-      const { latitude, longitude } = pos.coords;
-      console.log(`📍 Lokasi: ${latitude}, ${longitude}`);
-      
+    // Load daftar murottal dari API - 114 Surah Lengkap
+    async loadMurotalList() {
       try {
-        // Get city name from reverse geocoding
-        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-        const geoData = await geoRes.json();
-        
-        // Ambil nama kota/kabupaten
-        this.cityName = geoData.address.city || 
-                       geoData.address.town || 
-                       geoData.address.county || 
-                       geoData.address.state || 
-                       'Lokasi Anda';
-        
-        console.log(`📍 Kota: ${this.cityName}`);
-        
-        // Get prayer times
-        const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}&method=11`);
+        console.log('🎵 Memuat daftar murottal...');
+        const res = await fetch('https://equran.id/api/v2/surat');
         const data = await res.json();
-        this.jadwal = data.data.timings;
-        
-        console.log('✅ Jadwal sholat berhasil dimuat');
-      } catch (err) {
-        console.error('❌ Gagal memuat jadwal sholat:', err);
-        this.cityName = 'Gagal memuat lokasi';
-      }
-    }, err => {
-      console.error('❌ Gagal mendapatkan lokasi:', err);
-      this.cityName = 'Lokasi ditolak';
-    });
-  },
 
-  // Load checklist dari localStorage dan reset jika hari berganti
-  loadChecklist() {
-    console.log('✅ Memuat checklist ibadah...');
-    const saved = localStorage.getItem('checklist');
-    if (saved) {
-      try {
-        this.checklist = JSON.parse(saved);
-      } catch (e) {
-        console.error('❌ Error parsing checklist:', e);
-      }
-    }
-    
-    // Reset checklist setiap hari baru
-    const lastDate = localStorage.getItem('checklistDate');
-    const today = new Date().toDateString();
-    if (lastDate !== today) {
-      console.log('🔄 Hari baru, reset checklist');
-      this.checklist.forEach(item => item.done = false);
-      localStorage.setItem('checklistDate', today);
-      this.saveChecklist();
-    }
-    
-    const doneCount = this.checklist.filter(i => i.done).length;
-    console.log(`✅ Checklist dimuat: ${doneCount}/${this.checklist.length} selesai`);
-  },
+        // Ambil SEMUA 114 surah dengan audio lengkap
+        this.murotalList = data.data.map(s => {
+          let audioUrl = '';
+          if (s.audioFull && s.audioFull['05']) {
+            audioUrl = s.audioFull['05'];
+          } else if (s.audioFull && s.audioFull['01']) {
+            audioUrl = s.audioFull['01'];
+          }
 
-  // Simpan checklist ke localStorage
-  saveChecklist() {
-    try {
-      localStorage.setItem('checklist', JSON.stringify(this.checklist));
-      const doneCount = this.checklist.filter(i => i.done).length;
-      console.log(`💾 Checklist disimpan: ${doneCount}/${this.checklist.length} selesai`);
-    } catch (e) {
-      console.error('❌ Error saving checklist:', e);
-    }
-  },
-
-  // Bookmark ayat favorit
-  bookmarkAyat(nomorAyat) {
-    try {
-      let bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
-      const key = `${this.currentSurah.namaLatin}-${nomorAyat}`;
-      
-      if (!bookmarks.includes(key)) {
-        bookmarks.push(key);
-        localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
-        alert(`✅ Ayat ${nomorAyat} dari Surah ${this.currentSurah.namaLatin} berhasil disimpan! 🔖`);
-        console.log('🔖 Bookmark disimpan:', key);
-      } else {
-        alert('ℹ️ Ayat sudah tersimpan sebelumnya');
-      }
-    } catch (e) {
-      console.error('❌ Error bookmarking ayat:', e);
-      alert('❌ Gagal menyimpan ayat');
-    }
-  },
-
-  // Install PWA
-  installApp() {
-    if (window.deferredPrompt) {
-      window.deferredPrompt.prompt();
-      window.deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('✅ User menerima install prompt');
-        } else {
-          console.log('❌ User menolak install prompt');
-        }
-        window.deferredPrompt = null;
-      });
-    } else {
-      alert('ℹ️ Aplikasi sudah terinstall atau browser tidak mendukung instalasi PWA.\n\nUntuk menginstall:\n• Chrome Android: Buka menu → Install app\n• Safari iOS: Tap Share → Add to Home Screen');
-    }
-  },
-
-  // Register service worker untuk PWA
-  registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(registration => {
-          console.log('✅ Service Worker registered:', registration);
-        })
-        .catch(err => {
-          console.error('❌ SW registration failed:', err);
+          return {
+            id: s.nomor,
+            nomor: s.nomor,
+            judul: s.namaLatin + ' - ' + s.nama,
+            qari: 'Mishari Rashid Al-Afasy',
+            audio: audioUrl
+          };
         });
-    } else {
-      console.warn('⚠️ Service Worker tidak didukung browser');
+
+        console.log(`✅ ${this.murotalList.length} murottal berhasil dimuat`);
+      } catch (err) {
+        console.error('❌ Gagal memuat murottal:', err);
+        this.murotalList = [];
+      }
+    },
+
+    // 🎧 Putar murottal dengan cepat tanpa delay
+    playMurotal(audioUrl) {
+      try {
+        const player = document.getElementById('murotalPlayer');
+        if (!player) {
+          console.warn('⚠️ Audio element tidak ditemukan di halaman.');
+          return;
+        }
+
+        player.src = audioUrl;
+        player.load(); // pre-load audio sebelum play
+        player.play()
+          .then(() => console.log('🎶 Murottal diputar:', audioUrl))
+          .catch(err => console.warn('⚠️ Autoplay diblokir, butuh interaksi user:', err));
+      } catch (err) {
+        console.error('❌ Gagal memutar murottal:', err);
+      }
+    },
+
+    // Load jadwal sholat berdasarkan kota dari GPS
+    async loadJadwal() {
+      if (!navigator.geolocation) {
+        this.cityName = 'Lokasi tidak tersedia';
+        console.warn('⚠️ Geolocation tidak didukung browser');
+        return;
+      }
+
+      console.log('📍 Mendapatkan lokasi...');
+      this.cityName = 'Mendapatkan lokasi...';
+
+      // 🆕 Minta izin notifikasi di awal
+      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        try {
+          await Notification.requestPermission();
+          console.log('🔔 Izin notifikasi:', Notification.permission);
+        } catch (err) {
+          console.warn('⚠️ Tidak bisa minta izin notifikasi:', err);
+        }
+      }
+
+      navigator.geolocation.getCurrentPosition(async pos => {
+        const { latitude, longitude } = pos.coords;
+        console.log(`📍 Lokasi: ${latitude}, ${longitude}`);
+
+        try {
+          // Get city name dari koordinat
+          const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+          const geoData = await geoRes.json();
+
+          this.cityName = geoData.address.city ||
+                          geoData.address.town ||
+                          geoData.address.county ||
+                          geoData.address.state ||
+                          'Lokasi Anda';
+
+          console.log(`📍 Kota: ${this.cityName}`);
+
+          // Ambil jadwal sholat
+          const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}&method=11`);
+          const data = await res.json();
+          this.jadwal = data.data.timings;
+
+          console.log('✅ Jadwal sholat berhasil dimuat');
+        } catch (err) {
+          console.error('❌ Gagal memuat jadwal sholat:', err);
+          this.cityName = 'Gagal memuat lokasi';
+        }
+      }, err => {
+        console.error('❌ Gagal mendapatkan lokasi:', err);
+        this.cityName = 'Lokasi ditolak';
+      });
+    },
+
+    // Load checklist dari localStorage dan reset jika hari berganti
+    loadChecklist() {
+      console.log('✅ Memuat checklist ibadah...');
+      const saved = localStorage.getItem('checklist');
+      if (saved) {
+        try {
+          this.checklist = JSON.parse(saved);
+        } catch (e) {
+          console.error('❌ Error parsing checklist:', e);
+        }
+      }
+  
+      // Reset checklist setiap hari baru
+      const lastDate = localStorage.getItem('checklistDate');
+      const today = new Date().toDateString();
+      if (lastDate !== today) {
+        console.log('🔄 Hari baru, reset checklist');
+        this.checklist.forEach(item => item.done = false);
+        localStorage.setItem('checklistDate', today);
+        this.saveChecklist();
+      }
+  
+      const doneCount = this.checklist.filter(i => i.done).length;
+      console.log(`✅ Checklist dimuat: ${doneCount}/${this.checklist.length} selesai`);
+    },
+  
+    // Simpan checklist ke localStorage
+    saveChecklist() {
+      try {
+        localStorage.setItem('checklist', JSON.stringify(this.checklist));
+        const doneCount = this.checklist.filter(i => i.done).length;
+        console.log(`💾 Checklist disimpan: ${doneCount}/${this.checklist.length} selesai`);
+      } catch (e) {
+        console.error('❌ Error saving checklist:', e);
+      }
+    },
+  
+    // Bookmark ayat favorit
+    bookmarkAyat(nomorAyat) {
+      try {
+        let bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+        const key = `${this.currentSurah.namaLatin}-${nomorAyat}`;
+  
+        if (!bookmarks.includes(key)) {
+          bookmarks.push(key);
+          localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+          alert(`✅ Ayat ${nomorAyat} dari Surah ${this.currentSurah.namaLatin} berhasil disimpan! 🔖`);
+          console.log('🔖 Bookmark disimpan:', key);
+        } else {
+          alert('ℹ️ Ayat sudah tersimpan sebelumnya');
+        }
+      } catch (e) {
+        console.error('❌ Error bookmarking ayat:', e);
+        alert('❌ Gagal menyimpan ayat');
+      }
+    },
+  
+    // Install PWA
+    installApp() {
+      if (window.deferredPrompt) {
+        window.deferredPrompt.prompt();
+        window.deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('✅ User menerima install prompt');
+          } else {
+            console.log('❌ User menolak install prompt');
+          }
+          window.deferredPrompt = null;
+        });
+      } else {
+        alert('ℹ️ Aplikasi sudah terinstall atau browser tidak mendukung instalasi PWA.\n\nUntuk menginstall:\n• Chrome Android: Buka menu → Install app\n• Safari iOS: Tap Share → Add to Home Screen');
+      }
+    },
+  
+    // Register service worker untuk PWA
+    registerServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(registration => {
+            console.log('✅ Service Worker registered:', registration);
+          })
+          .catch(err => {
+            console.error('❌ SW registration failed:', err);
+          });
+      } else {
+        console.warn('⚠️ Service Worker tidak didukung browser');
+      }
     }
-  }
-};
-
-// Simpan install prompt untuk digunakan nanti
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  window.deferredPrompt = e;
-  console.log('📲 Install prompt tersedia');
-});
-
-// Log ketika app terinstall
-window.addEventListener('appinstalled', () => {
-  console.log('✅ BarakahKu berhasil diinstall!');
-  window.deferredPrompt = null;
-});
+  };
+  
+  // Simpan install prompt untuk digunakan nanti
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    window.deferredPrompt = e;
+    console.log('📲 Install prompt tersedia');
+  });
+  
+  // Log ketika app terinstall
+  window.addEventListener('appinstalled', () => {
+    console.log('✅ BarakahKu berhasil diinstall!');
+    window.deferredPrompt = null;
+  });
+  
