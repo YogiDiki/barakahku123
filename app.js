@@ -114,9 +114,8 @@ const app = {
     await this.loadMurotalList();
     this.registerServiceWorker();
 
-    // ======= Tambahan: inisialisasi Firebase Messaging setelah SW terdaftar =======
-    // (ini tidak mengubah alur asli — hanya menambahkan notifikasi)
-    await initFirebaseMessaging();
+    // ======= Firebase Messaging akan diinit hanya setelah user klik tombol =======
+    // TIDAK dipanggil otomatis lagi agar tidak error permission
 
     // 🎧 Tambahan fitur: auto-stop murottal
     document.addEventListener('play', function (e) {
@@ -423,27 +422,28 @@ const app = {
   async requestNotificationPermission() {
     if (Notification.permission === 'granted') {
       alert('✅ Izin notifikasi sudah diberikan!');
+      console.log('🔔 Permission sudah granted');
       return;
     }
     
     if (Notification.permission === 'denied') {
-      alert('❌ Izin notifikasi ditolak. Silakan aktifkan dari pengaturan browser.');
+      alert('❌ Izin notifikasi ditolak. Silakan aktifkan dari pengaturan browser:\n\n1. Klik ikon gembok di address bar\n2. Cari "Notifications"\n3. Ubah ke "Allow"');
       return;
     }
 
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
-        alert('✅ Izin notifikasi berhasil diberikan!');
-        console.log('🔔 Permission granted');
-        // Reinit Firebase Messaging untuk mendapatkan token
+        // Init Firebase Messaging setelah permission granted
         await initFirebaseMessaging();
+        alert('✅ Notifikasi berhasil diaktifkan!\n\nAnda akan menerima pengingat sholat dan notifikasi ibadah.');
+        console.log('🔔 Permission granted, Firebase Messaging initialized');
       } else {
         alert('❌ Izin notifikasi ditolak');
       }
     } catch (err) {
       console.error('❌ Error meminta izin notifikasi:', err);
-      alert('❌ Gagal meminta izin notifikasi');
+      alert('❌ Gagal meminta izin notifikasi: ' + err.message);
     }
   },
 
