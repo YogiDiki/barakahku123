@@ -434,19 +434,32 @@ const app = {
     }
   },
 
- // Daftarkan firebase-messaging-sw.js (wajib agar FCM bisa handle background)
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    .then(registration => {
-      console.log('Firebase Messaging SW terdaftar:', registration.scope);
-    })
-    .catch(err => {
-      console.error('Gagal mendaftar Firebase Messaging SW:', err);
-    });
-}
+ // ==============================
+// Ganti bagian dalam objek `app`
+// ==============================
+registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    // --- Service worker utama PWA ---
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(registration => {
+        console.log('✅ Service Worker (PWA) terdaftar:', registration.scope);
+      })
+      .catch(err => {
+        console.error('❌ Gagal daftar service-worker.js:', err);
+      });
 
-
-};
+    // --- Service worker untuk Firebase Messaging ---
+    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      .then(registration => {
+        console.log('✅ Firebase Messaging SW terdaftar:', registration.scope);
+      })
+      .catch(err => {
+        console.error('❌ Gagal daftar firebase-messaging-sw.js:', err);
+      });
+  } else {
+    console.warn('⚠️ Browser tidak mendukung Service Worker');
+  }
+},
 
 // ------------------------------
 // Event global untuk PWA install prompt (harus berada di luar objek app)
