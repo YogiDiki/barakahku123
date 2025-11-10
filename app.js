@@ -53,30 +53,38 @@ async function initFirebaseMessaging() {
       console.error('❌ Gagal mengambil FCM token:', err);
     }
 
-    // Handler notifikasi ketika app dalam keadaan foreground
-    onMessage(messaging, (payload) => {
-      console.log('📩 Pesan FCM diterima (foreground):', payload);
-      try {
-        const title = payload?.notification?.title || 'Notifikasi';
-        const body = payload?.notification?.body || '';
-        // Tampilkan notifikasi (jika permission granted)
-        if (Notification.permission === 'granted') {
-          new Notification(title, {
-            body,
-            icon: '/assets/icons/icon-192.png'
-          });
-        } else {
-          // fallback: alert (opsional)
-          console.log('🔔 Notifikasi diterima tapi permission belum granted');
+  // Handler notifikasi ketika app dalam keadaan foreground
+onMessage(messaging, (payload) => {
+  console.log('📩 Pesan FCM diterima (foreground):', payload);
+  try {
+    const title = payload?.notification?.title || 'BarakahKu - Notifikasi';
+    const body = payload?.notification?.body || '';
+    
+    // Tampilkan notifikasi (jika permission granted)
+    if (Notification.permission === 'granted') {
+      const notification = new Notification(title, {
+        body,
+        icon: '/assets/icons/icon-192.png',
+        badge: '/assets/icons/icon-192.png',
+        tag: 'barakahku-notification',
+        requireInteraction: false,
+        vibrate: [200, 100, 200], // Pola getar
+        data: {
+          url: payload.notification?.click_action || 'https://barakahku123.vercel.app/'
         }
-      } catch (err) {
-        console.error('❌ Error menampilkan notifikasi foreground:', err);
-      }
-    });
+      });
 
-    console.log('✅ Firebase Messaging inisialisasi selesai');
+      // Ketika notifikasi diklik di foreground
+      notification.onclick = function(event) {
+        event.preventDefault();
+        window.focus(); // Fokus ke aplikasi
+        notification.close();
+      };
+    } else {
+      console.log('🔔 Notifikasi diterima tapi permission belum granted');
+    }
   } catch (err) {
-    console.error('❌ Gagal inisialisasi Firebase Messaging (dynamic import):', err);
+    console.error('❌ Error menampilkan notifikasi foreground:', err);
   }
 }
 
