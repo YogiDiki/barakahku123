@@ -497,5 +497,55 @@
   <script src="app.js"></script>
   <button @click="playMurotal(item.audio)">▶️ Putar</button>
 
+  <!-- Firebase SDK -->
+  <script type="module">
+    // Import SDK Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+    import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-messaging.js";
+
+    // Konfigurasi Firebase Project kamu
+    const firebaseConfig = {
+      apiKey: "AIzaSyDbtIz_-mXJIjkFYOYBfPGq_KSMUTzQgwQ",
+      authDomain: "barakahku-app.firebaseapp.com",
+      projectId: "barakahku-app",
+      storageBucket: "barakahku-app.firebasestorage.app",
+      messagingSenderId: "510231053293",
+      appId: "1:510231053293:web:1d6b6cf3e62bde252b5de4",
+      measurementId: "G-HMQP1RTSQV"
+    };
+
+    // Inisialisasi Firebase
+    const app = initializeApp(firebaseConfig);
+    const messaging = getMessaging(app);
+
+    // Minta izin untuk notifikasi
+    Notification.requestPermission().then(permission => {
+      if (permission === "granted") {
+        console.log("Izin notifikasi diberikan ✅");
+
+        // Dapatkan token perangkat
+        getToken(messaging, {
+          vapidKey: "BPlDFz_hcKiApo1rRQtqBoYlzZqSx8uA1K7z94iV4HcbdAi80VL1yYvIfxVxdtP7y5Xlt5dthkAjikn59a3c_4s"
+        }).then((currentToken) => {
+          if (currentToken) {
+            console.log("Token perangkat:", currentToken);
+          } else {
+            console.log("Tidak ada token, minta izin lagi.");
+          }
+        }).catch((err) => {
+          console.error("Gagal mendapatkan token:", err);
+        });
+      } else {
+        console.log("Izin notifikasi ditolak ❌");
+      }
+    });
+
+    // Listener saat notifikasi diterima saat app aktif
+    onMessage(messaging, (payload) => {
+      console.log("Pesan masuk:", payload);
+      alert("📩 Notifikasi baru: " + payload.notification.title);
+    });
+  </script>
+
 </body>
 </html>"<!-- redeploy -->" 
