@@ -7,6 +7,12 @@
 // ------------------------------
 async function initFirebaseMessaging() {
   try {
+    // Cek permission dulu sebelum init
+    if (Notification.permission !== 'granted') {
+      console.log('⚠️ Notifikasi belum diizinkan, skip Firebase Messaging init');
+      return;
+    }
+
     // Dynamic import dari CDN (versi modular)
     const firebaseAppModule = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js');
     const firebaseMessagingModule = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js');
@@ -29,28 +35,22 @@ async function initFirebaseMessaging() {
     const fbApp = initializeApp(firebaseConfig);
     const messaging = getMessaging(fbApp);
 
-    // Minta izin notifikasi (jika belum di-grant)
-    if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-      console.log('⚠️ Notifikasi belum diizinkan. Silakan klik tombol "Aktifkan Notifikasi" di halaman beranda.');
-    }
+    console.log('✅ Firebase App initialized');
 
-    if (Notification.permission === 'granted') {
-      try {
-        // ====== GANTI vapidKey dengan VAPID public key dari Firebase Console ======
-        const vapidKey = 'BEFVvRCw1LLJSS1Ss7VSeCFAmLx57Is7MgJHqsn-dtS3jUcI1S-PZjK9ybBK3XAFdnSLgm0iH9RvvRiDOAnhmsM';
+    // Ambil token FCM
+    try {
+      // ====== GANTI vapidKey dengan VAPID public key dari Firebase Console ======
+      const vapidKey = 'BEFVvRCw1LLJSS1Ss7VSeCFAmLx57Is7MgJHqsn-dtS3jUcI1S-PZjK9ybBK3XAFdnSLgm0iH9RvvRiDOAnhmsM';
 
-        const currentToken = await getToken(messaging, { vapidKey });
-        if (currentToken) {
-          console.log('🔑 FCM token diperoleh:', currentToken);
-          // TODO: kirim token ini ke server/database jika perlu
-        } else {
-          console.warn('⚠️ Tidak mendapatkan FCM token — mungkin belum ada izin atau konfigurasi VAPID belum benar');
-        }
-      } catch (err) {
-        console.error('❌ Gagal mengambil FCM token:', err);
+      const currentToken = await getToken(messaging, { vapidKey });
+      if (currentToken) {
+        console.log('🔑 FCM token diperoleh:', currentToken);
+        // TODO: kirim token ini ke server/database jika perlu
+      } else {
+        console.warn('⚠️ Tidak mendapatkan FCM token');
       }
-    } else {
-      console.warn('⚠️ Notifikasi belum diizinkan oleh user');
+    } catch (err) {
+      console.error('❌ Gagal mengambil FCM token:', err);
     }
 
     // Handler notifikasi ketika app dalam keadaan foreground
@@ -453,6 +453,12 @@ const app = {
       navigator.serviceWorker.register('/service-worker.js')
         .then(registration => {
           console.log('✅ Service Worker terdaftar (PWA + Firebase):', registration);
+          
+          // Cek apakah notifikasi sudah granted, jika ya init Firebase Messaging
+          if (Notification.permission === 'granted') {
+            console.log('🔔 Notifikasi sudah diizinkan, inisialisasi Firebase Messaging...');
+            initFirebaseMessaging();
+          }
         })
         .catch(err => {
           console.error('❌ Gagal register service-worker.js:', err);
