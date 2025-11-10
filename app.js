@@ -31,12 +31,7 @@ async function initFirebaseMessaging() {
 
     // Minta izin notifikasi (jika belum di-grant)
     if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-      try {
-        await Notification.requestPermission();
-        console.log('🔔 Permission notification:', Notification.permission);
-      } catch (err) {
-        console.warn('⚠️ Gagal meminta permission notifikasi:', err);
-      }
+      console.log('⚠️ Notifikasi belum diizinkan. Silakan klik tombol "Aktifkan Notifikasi" di halaman beranda.');
     }
 
     if (Notification.permission === 'granted') {
@@ -317,16 +312,6 @@ const app = {
     console.log('📍 Mendapatkan lokasi...');
     this.cityName = 'Mendapatkan lokasi...';
 
-    // 🆕 Minta izin notifikasi di awal
-    if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-      try {
-        await Notification.requestPermission();
-        console.log('🔔 Izin notifikasi:', Notification.permission);
-      } catch (err) {
-        console.warn('⚠️ Tidak bisa minta izin notifikasi:', err);
-      }
-    }
-
     navigator.geolocation.getCurrentPosition(async pos => {
       const { latitude, longitude } = pos.coords;
       console.log(`📍 Lokasi: ${latitude}, ${longitude}`);
@@ -431,6 +416,34 @@ const app = {
       });
     } else {
       alert('ℹ️ Aplikasi sudah terinstall atau browser tidak mendukung instalasi PWA.\n\nUntuk menginstall:\n• Chrome Android: Buka menu → Install app\n• Safari iOS: Tap Share → Add to Home Screen');
+    }
+  },
+
+  // Minta izin notifikasi dengan user interaction
+  async requestNotificationPermission() {
+    if (Notification.permission === 'granted') {
+      alert('✅ Izin notifikasi sudah diberikan!');
+      return;
+    }
+    
+    if (Notification.permission === 'denied') {
+      alert('❌ Izin notifikasi ditolak. Silakan aktifkan dari pengaturan browser.');
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        alert('✅ Izin notifikasi berhasil diberikan!');
+        console.log('🔔 Permission granted');
+        // Reinit Firebase Messaging untuk mendapatkan token
+        await initFirebaseMessaging();
+      } else {
+        alert('❌ Izin notifikasi ditolak');
+      }
+    } catch (err) {
+      console.error('❌ Error meminta izin notifikasi:', err);
+      alert('❌ Gagal meminta izin notifikasi');
     }
   },
 
