@@ -434,20 +434,17 @@ const app = {
     }
   },
 
- // Register service worker (gabungan PWA + Firebase Messaging)
-registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(registration => {
-        console.log('✅ Service Worker terdaftar (PWA + Firebase):', registration);
-      })
-      .catch(err => {
-        console.error('❌ Gagal register service-worker.js:', err);
-      });
-  } else {
-    console.warn('⚠️ Service Worker tidak didukung browser');
-  }
+ // Daftarkan firebase-messaging-sw.js (wajib agar FCM bisa handle background)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    .then(registration => {
+      console.log('Firebase Messaging SW terdaftar:', registration.scope);
+    })
+    .catch(err => {
+      console.error('Gagal mendaftar Firebase Messaging SW:', err);
+    });
 }
+
 
 };
 
