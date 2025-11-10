@@ -8,8 +8,8 @@
 async function initFirebaseMessaging() {
   try {
     // Dynamic import dari CDN (versi modular)
-    const firebaseAppModule = await import('https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js');
-    const firebaseMessagingModule = await import('https://www.gstatic.com/firebasejs/12.5.0/firebase-messaging.js');
+    const firebaseAppModule = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js');
+    const firebaseMessagingModule = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js');
 
     const { initializeApp } = firebaseAppModule;
     const { getMessaging, getToken, onMessage } = firebaseMessagingModule;
@@ -434,20 +434,20 @@ const app = {
     }
   },
 
- // Register service worker (gabungan PWA + Firebase Messaging)
-registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(registration => {
-        console.log('✅ Service Worker terdaftar (PWA + Firebase):', registration);
-      })
-      .catch(err => {
-        console.error('❌ Gagal register service-worker.js:', err);
-      });
-  } else {
-    console.warn('⚠️ Service Worker tidak didukung browser');
+  // Register service worker (gabungan PWA + Firebase Messaging)
+  registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(registration => {
+          console.log('✅ Service Worker terdaftar (PWA + Firebase):', registration);
+        })
+        .catch(err => {
+          console.error('❌ Gagal register service-worker.js:', err);
+        });
+    } else {
+      console.warn('⚠️ Service Worker tidak didukung browser');
+    }
   }
-}
 
 };
 
