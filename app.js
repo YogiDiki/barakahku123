@@ -447,26 +447,40 @@ const app = {
     }
   },
 
-  // Register service worker (gabungan PWA + Firebase Messaging)
-  registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js')
-        .then(registration => {
-          console.log('✅ Service Worker terdaftar (PWA + Firebase):', registration);
-          
-          // Cek apakah notifikasi sudah granted, jika ya init Firebase Messaging
-          if (Notification.permission === 'granted') {
-            console.log('🔔 Notifikasi sudah diizinkan, inisialisasi Firebase Messaging...');
+ // Register service worker (PISAH: PWA + Firebase Messaging)
+ registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    // Register PWA Service Worker
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(registration => {
+        console.log('✅ PWA Service Worker terdaftar:', registration.scope);
+      })
+      .catch(err => {
+        console.error('❌ Gagal register service-worker.js:', err);
+      });
+
+    // Register Firebase Messaging Service Worker (TERPISAH)
+    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      .then(registration => {
+        console.log('✅ Firebase Messaging SW terdaftar:', registration.scope);
+        
+        // Cek apakah notifikasi sudah granted, jika ya init Firebase Messaging
+        if (Notification.permission === 'granted') {
+          console.log('🔔 Notifikasi sudah diizinkan, inisialisasi Firebase Messaging...');
+          // Tunggu sebentar agar SW benar-benar ready
+          setTimeout(() => {
             initFirebaseMessaging();
-          }
-        })
-        .catch(err => {
-          console.error('❌ Gagal register service-worker.js:', err);
-        });
-    } else {
-      console.warn('⚠️ Service Worker tidak didukung browser');
-    }
+          }, 1000);
+        }
+      })
+      .catch(err => {
+        console.error('❌ Gagal register firebase-messaging-sw.js:', err);
+        console.error('Detail error:', err.message);
+      });
+  } else {
+    console.warn('⚠️ Service Worker tidak didukung browser');
   }
+}
 
 };
 
