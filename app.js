@@ -434,32 +434,22 @@ const app = {
     }
   },
 
- // ==============================
-// Ganti bagian dalam objek `app`
-// ==============================
+ // Register service worker (gabungan PWA + Firebase Messaging)
 registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    // --- Service worker utama PWA ---
-    navigator.serviceWorker.register('/service-worker.js')
+    navigator.serviceWorker.register('service-worker.js')
       .then(registration => {
-        console.log('✅ Service Worker (PWA) terdaftar:', registration.scope);
+        console.log('✅ Service Worker terdaftar (PWA + Firebase):', registration);
       })
       .catch(err => {
-        console.error('❌ Gagal daftar service-worker.js:', err);
-      });
-
-    // --- Service worker untuk Firebase Messaging ---
-    navigator.serviceWorker.register('/firebase-messaging-sw.js')
-      .then(registration => {
-        console.log('✅ Firebase Messaging SW terdaftar:', registration.scope);
-      })
-      .catch(err => {
-        console.error('❌ Gagal daftar firebase-messaging-sw.js:', err);
+        console.error('❌ Gagal register service-worker.js:', err);
       });
   } else {
-    console.warn('⚠️ Browser tidak mendukung Service Worker');
+    console.warn('⚠️ Service Worker tidak didukung browser');
   }
-},
+}
+
+};
 
 // ------------------------------
 // Event global untuk PWA install prompt (harus berada di luar objek app)
